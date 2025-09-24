@@ -186,7 +186,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "unauthorized request");
@@ -268,7 +269,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
       },
     },
     { new: true }
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   return res
     .status(200)
@@ -290,7 +291,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     req.user?._id,
     { $set: { avatar: avatar.url } },
     { new: true }
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   deleteTempFileLocal(avatarLocalPath);
 
@@ -315,7 +316,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     req.user?._id,
     { $set: { coverImage: coverImage.url } },
     { new: true }
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   deleteTempFileLocal(coverImageLocalPath);
 
@@ -362,8 +363,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
           $size: "$subscribedTo",
         },
         isSubscribed: {
-          $condition: {
-            if: { $in: [req.user?._id, "$subscribers.$subscriber"] },
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
             then: true,
             else: false,
           },
@@ -385,7 +386,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   ]);
   console.log("Channel: ", channel);
 
-  if (!channel?.length()) {
+  if (!channel?.length) {
     throw new ApiError(404, " channel does not exist");
   }
 
